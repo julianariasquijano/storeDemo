@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Happy Store</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+    <link type="text/css" rel="stylesheet" href="http://unpkg.com/bootstrap/dist/css/bootstrap.min.css"/>
+    <link type="text/css" rel="stylesheet" href="http://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css"/>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+    <script src="http://unpkg.com/vue-router@3.0.1/dist/vue-router.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>
+
+    <script src="http://unpkg.com/babel-polyfill@latest/dist/polyfill.min.js"></script>
+    <script src="http://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
+
+    <style>
+      .enabled {
+      }       
+      .disabled {
+        opacity:0.5;
+        pointer-events: none;
+      }
+     
+    </style>
+
+
+</head>
+<body>
+<div id="vueMain" v-bind:class="mainViewEnabled ? 'enabled' : 'disabled'" style="margin: 30px;">
+
+    <b-navbar toggleable="md" type="dark" variant="info">
+
+        <b-navbar-toggle target="nav_collapse"></b-navbar-toggle>
+
+        <b-navbar-brand @click="showMain">Happy Store :-)</b-navbar-brand>
+
+        <b-collapse is-nav id="nav_collapse">
+
+            <b-navbar-nav>
+                <b-nav-item @click="showMain">Home</b-nav-item>
+                <b-nav-item @click="showProductList">Product List</b-nav-item>
+            </b-navbar-nav>
+
+        </b-collapse>
+    </b-navbar>
+    <br>
+
+    <b-jumbotron v-if="view==='main'" header="Happy Store :-)" lead="Buy without leaving your home !">
+        <p>See our product list.</p>
+        <b-btn @click="showProductList" variant="primary">Go -></b-btn>
+    </b-jumbotron>
+
+    <div v-else-if="view==='productList'">
+
+        <b-container>
+            <b-row>
+                <b-card v-for="(product, index) in products"
+                        v-bind:title="product.name"
+                        v-bind:img-src="product.image_url"
+                        img-alt="Image"
+                        img-top
+                        tag="article"
+                        style="width: 15rem; margin: 25px"
+                        class="mb-2">
+                    <div style="display: flex;height: 100%">
+                        <div style="display: inline-block;align-self: flex-end;width: 100%;margin-bottom: 65px">
+                            <p class="card-text">
+                                {{product.comment}} <br><b> USD ${{product.price}} </b>
+                            </p>
+                            <b-button @click="showBuyData(index)" variant="primary" style="width: 100%">Buy</b-button>
+                        </div>
+                    </div>
+
+                </b-card>
+            </b-row>
+        </b-container>
+
+    </div>
+
+    <div v-else-if="view==='buyData'">
+        <b-alert show variant="warning"><b>Product Name:</b> {{products[selectedProductIndex].name}} <b>Product
+            Price:</b> USD ${{products[selectedProductIndex].price}}
+        </b-alert>
+
+        <b-container>
+            <b-row>
+                <b-col>
+                    <center>
+                        <b-card
+                                v-bind:title="products[selectedProductIndex].name"
+                                v-bind:img-src="products[selectedProductIndex].image_url"
+                                img-alt="Image"
+                                img-top
+                                tag="article"
+                                style="width: 15rem; margin: 25px"
+                                class="mb-2">
+                            <div style="display: flex;height: 100%">
+                                <div style="display: inline-block;align-self: flex-end;width: 100%;margin-bottom: 65px">
+                                    <p class="card-text">
+                                        {{products[selectedProductIndex].comment}} <br><b> USD
+                                        ${{products[selectedProductIndex].price}} </b>
+                                    </p>
+                                </div>
+                            </div>
+
+                        </b-card>
+                    </center>
+                </b-col>
+                <b-col>
+                    <b-alert show v-if="invalidClientEmail" variant="danger">Please use a valid E-mail</b-alert>
+                    <b-form-group ref="buyForm"
+                                  id="buyForm"
+                                  label="Email address:"
+                                  v-model="clientMail"
+                                  label-for="email"
+                                  description="We'll never share your email with anyone else.">
+                        <b-form-input id="email"
+                                      type="email"
+                                      v-model="clientMail"
+                                      required
+                                      placeholder="Enter email">
+                        </b-form-input>
+
+                    </b-form-group>
+                    
+                    <b-form-group label="Payment Method:">
+                        <b-form-radio-group id="paymentMethod" v-model="clientPaymentMethod" name="paymentMethod">
+                            <b-form-radio value="card">CREDIT CARD</b-form-radio>
+                            <b-form-radio value="account">BANK ACCOUNT</b-form-radio>
+                            <b-form-radio value="ussd" >USSD</b-form-radio>
+                        </b-form-radio-group>
+                    </b-form-group>                        
+                    
+                    <b-container>
+                        <b-row>
+                            <b-col>
+                                <b-btn @click="showProductList" variant="danger"
+                                       style="width:100%;margin-bottom: 10px">Back
+                                </b-btn>
+                            </b-col>
+                            <b-col>
+                                <b-button @click="startPayment()" variant="primary" style="width: 100%">Continue to
+                                    Payment
+                                </b-button>
+                            </b-col>
+                        </b-row>
+                    </b-container>
+                </b-col>
+
+            </b-row>
+        </b-container>
+
+    </div>
+
+</div>
+
+<script type="text/javascript">
+       var vm = new Vue({
+          el: '#vueMain',
+          data: {
+            mainViewEnabled:true,
+            view:'main',
+            selectedProductIndex : 0,
+            clientMail:'',
+            clientCurrency:'',
+            clientPaymentMethod:'card',
+            invalidClientEmail:false,
+            products : [
+              { name: 'Horse', comment: 'Realistic Wood Horse', image_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTS8uyKZ02b5V48bSjvfZfAoh-85gnSSZR2S4NK6a0tjlaHz65kPA', price: 10 },
+              { name: 'Lion', comment: 'Realistic Wood Lion', image_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQAO41oTjicKlgneUqUdiyE9Jit3Eokr7v9qA5tRKxqZjufBUY2', price: 12 },
+              { name: 'Eagle', comment: 'Realistic Wood Eagle', image_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5i5QxCXVMHvgyueXC_ngu7DQltmHhpsw-YoN5fMrzqtRgymAI', price: 11 },
+              { name: 'Triceratops', comment: 'Realistic Wood Triceratops', image_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbCNcc-4Avb5-43KFwLqeqdxZ-fro0dVv1uLUM3T0muKl_8Cj5', price: 10 },
+              { name: 'Dog', comment: 'Realistic Wood Dog', image_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYHrFylaALtXbitr-p0nLrgFxZRIApdXun6ckMH3dWkMznw8CsyQ', price: 11 },
+            ],
+            mainStyle: {
+              disabled:'',
+            }
+          },
+          methods: {
+            showProductList: function() {
+              this.view = 'productList';
+            },
+            showMain: function() {
+              this.view = 'main';
+            },
+            showBuyData: function(index) {
+              this.view = 'buyData';
+              this.invalidClientEmail=false;
+              this.selectedProductIndex = index;
+            },
+            startPayment: function() {
+              
+              if (this.validEmail(this.clientMail)) {
+                
+                this.mainViewEnabled = false;
+    
+                var route = 'http://localhost:5000/startPayment?mail='+this.clientMail+'&currency=USD'+'&amount='+this.products[this.selectedProductIndex].price+'&redirectUrl=http://www.enjoyframework.com'+'&paymentMethod='+this.clientPaymentMethod
+                this.$http.get(route).then((response)=>{
+                  if(response.bodyText.startsWith("http")){
+                    window.location.href = response.bodyText;
+                  }
+                  else {
+                    alert('Redirection Error. Please try again later.');
+                    this.mainViewEnabled = true;
+                  }
+
+                }, response => {
+                  alert('Redirection Error. Please try again later.');
+                  this.mainViewEnabled = true;
+                })
+                
+              } else this.invalidClientEmail=true;
+              
+            },
+            validEmail: function (email) {
+              var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+              return re.test(email);
+            },
+
+          },          
+       });
+
+</script>
+
+</body>
+
+</html>
